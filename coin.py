@@ -1,17 +1,29 @@
 import os
 import requests
-import sqlite3
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from telegram import Bot
 from telegram.constants import ParseMode
-
 from datetime import datetime
 
-# Çevresel değişkenlerden BOT_TOKEN alınır.
+from fastapi import FastAPI
+import uvicorn
+
+# SQLAlchemy async modülleri
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import MetaData, Table, Column, String, Float, text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.future import select
+
+# Çevresel değişkenler
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")  # Örneğin: "postgresql+asyncpg://user:password@host:port/dbname"
+
 if not BOT_TOKEN:
     print("⚠️ Hata: BOT_TOKEN çevresel değişken olarak tanımlanmamış!")
+    exit(1)
+if not DATABASE_URL:
+    print("⚠️ Hata: DATABASE_URL çevresel değişken olarak tanımlanmamış!")
     exit(1)
 
 # Yapılandırma
@@ -34,127 +46,71 @@ CONFIG = {
     "COUNTDOWN_STEP": 10           # Geri sayım adım süresi (saniye)
 }
 
-# --- VERİTABANI YÖNETİMİ ---
-def initialize_db(file_name):
-    if not os.path.exists(file_name):
-        conn = sqlite3.connect(file_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS coin_volumes (
-                symbol TEXT PRIMARY KEY,
-                previous_volume REAL
-            )
-        """)
-        conn.commit()
-        conn.close()
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Veritabanı başlatıldı: {file_name}")
+# --- VERİTABANI AYARLARI ---
+metadata = MetaData()
 
-def get_previous_volume(symbol):
-    if not os.path.exists("coin_alertsOLD.db"):
-        return 0
-    conn = sqlite3.connect("coin_alertsOLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
+coin_alerts_old = Table(
+    "coin_alerts_old", metadata,
+    Column("symbol", String, primary_key=True),
+    Column("previous_volume", Float)
+)
 
-def save_current_volume(symbol, volume):
-    conn = sqlite3.connect("coin_alertsNEW.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
-        )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
+coin_alerts_1h_old = Table(
+    "coin_alerts_1h_old", metadata,
+    Column("symbol", String, primary_key=True),
+    Column("previous_volume", Float)
+)
 
-def rotate_db():
+coin_alerts_24h_old = Table(
+    "coin_alerts_24h_old", metadata,
+    Column("symbol", String, primary_key=True),
+    Column("previous_volume", Float)
+)
+
+# Asenkron engine oluşturuluyor.
+engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+
+async def initialize_db():
     try:
-        if os.path.exists("coin_alertsOLD.db"):
-            os.remove("coin_alertsOLD.db")
-        if os.path.exists("coin_alertsNEW.db"):
-            os.rename("coin_alertsNEW.db", "coin_alertsOLD.db")
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Anlık veritabanı döndürüldü")
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Anlık DB döndürme hatası: {str(e)}")
+        async with engine.begin() as conn:
+            # Tabloları oluştur. Eğer mevcut değilse.
+            await conn.run_sync(metadata.create_all)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Veritabanı tabloları oluşturuldu")
+    except SQLAlchemyError as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] DB oluşturma hatası: {e}")
 
-# 1h DB yönetimi
-def get_previous_volume_1h(symbol):
-    if not os.path.exists("coin_alerts1h_OLD.db"):
-        return 0
-    conn = sqlite3.connect("coin_alerts1h_OLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
-
-def save_current_volume_1h(symbol, volume):
-    conn = sqlite3.connect("coin_alerts1h_NEW.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
+async def get_previous_volume(table: Table, symbol: str) -> float:
+    async with AsyncSession(engine) as session:
+        result = await session.execute(
+            select(table.c.previous_volume).where(table.c.symbol == symbol)
         )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
+        row = result.scalar()
+        return row if row is not None else 0
 
-def rotate_db_1h():
-    try:
-        if os.path.exists("coin_alerts1h_OLD.db"):
-            os.remove("coin_alerts1h_OLD.db")
-        if os.path.exists("coin_alerts1h_NEW.db"):
-            os.rename("coin_alerts1h_NEW.db", "coin_alerts1h_OLD.db")
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h veritabanı döndürüldü")
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h DB döndürme hatası: {str(e)}")
-
-# 24h DB yönetimi
-def get_previous_volume_24h(symbol):
-    if not os.path.exists("coin_alerts24h_OLD.db"):
-        return 0
-    conn = sqlite3.connect("coin_alerts24h_OLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
-
-def save_current_volume_24h(symbol, volume):
-    conn = sqlite3.connect("coin_alerts24h_NEW.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
+async def save_current_volume(table: Table, symbol: str, volume: float):
+    async with AsyncSession(engine) as session:
+        # INSERT or UPDATE
+        stmt = table.insert().values(symbol=symbol, previous_volume=volume).on_conflict_do_update(
+            index_elements=[table.c.symbol],
+            set_={"previous_volume": volume}
         )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
+        # Eğer on_conflict_do_update desteklenmiyorsa alternatif yöntem kullanılabilir (örneğin, DELETE then INSERT)
+        try:
+            await session.execute(stmt)
+            await session.commit()
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
+        except SQLAlchemyError as e:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] DB kaydetme hatası: {e}")
 
-def rotate_db_24h():
-    try:
-        if os.path.exists("coin_alerts24h_OLD.db"):
-            os.remove("coin_alerts24h_OLD.db")
-        if os.path.exists("coin_alerts24h_NEW.db"):
-            os.rename("coin_alerts24h_NEW.db", "coin_alerts24h_OLD.db")
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h veritabanı döndürüldü")
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h DB döndürme hatası: {str(e)}")
-
-def initialize_databases():
-    initialize_db("coin_alertsOLD.db")
-    initialize_db("coin_alerts1h_OLD.db")
-    initialize_db("coin_alerts24h_OLD.db")
+async def rotate_db(table: Table):
+    async with AsyncSession(engine) as session:
+        try:
+            # Tablonun tüm kayıtlarını silmek için:
+            await session.execute(table.delete())
+            await session.commit()
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {table.name} tablosu döndürüldü (sıfırlandı)")
+        except SQLAlchemyError as e:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {table.name} döndürme hatası: {e}")
 
 # --- YARDIMCI FONKSİYONLAR ---
 def format_volume(volume):
@@ -178,11 +134,8 @@ def create_alert_table(title, headers, data):
     for row in data:
         escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
         table_rows.append(" | ".join(escaped_row))
-
-    table = f"*{escaped_title}*\n```\n"
-    table += " | ".join(escaped_headers) + "\n"
-    table += "-|-|-|-\n"
-    table += "\n".join(table_rows) + "\n```"
+    table = f"*{escaped_title}*\n```\n" + " | ".join(escaped_headers) + "\n"
+    table += "-|-|-|-\n" + "\n".join(table_rows) + "\n```"
     return table
 
 def split_long_message(full_message, max_length=4096):
@@ -190,7 +143,6 @@ def split_long_message(full_message, max_length=4096):
     current_part = []
     current_length = 0
     in_code_block = False
-
     for line in full_message.split('\n'):
         line_length = len(line) + 1
         if line.strip().startswith('```'):
@@ -212,20 +164,16 @@ def split_long_message(full_message, max_length=4096):
         parts.append('\n'.join(current_part))
     return parts
 
-# --- ALARM SİSTEMLERİ ---
+# --- ALARM SİSTEMLERİ (ESKI YAPIYA BENZER) ---
 async def fetch_coingecko_data():
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CoinGecko verileri çekiliyor...")
     try:
         params = {"vs_currency": "usd", "order": "volume_desc", "per_page": 100}
         with ThreadPoolExecutor() as executor:
-            response = await asyncio.get_event_loop().run_in_executor(
-                executor, requests.get, CONFIG["API_URLS"]["coingecko"], params
-            )
+            response = await asyncio.get_event_loop().run_in_executor(executor, requests.get, CONFIG["API_URLS"]["coingecko"], params)
         coins = response.json()
-
         volume_alerts = []
         support_alerts = []
-        
         for coin in coins:
             symbol = coin['symbol'].upper()
             market_cap = coin.get('market_cap', 0)
@@ -262,20 +210,15 @@ async def fetch_binance_data():
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Binance verileri çekiliyor...")
     try:
         with ThreadPoolExecutor() as executor:
-            response = await asyncio.get_event_loop().run_in_executor(
-                executor, requests.get, CONFIG["API_URLS"]["binance"]
-            )
+            response = await asyncio.get_event_loop().run_in_executor(executor, requests.get, CONFIG["API_URLS"]["binance"])
         tickers = response.json()
-
         pump_alerts = []
         support_alerts = []
         inflow_alerts = []
         volume_spike_alerts = []
-        # EKSTRA: 1h ve 24h volume increase listeleri
         volume_increase_1h = []
         volume_increase_24h = []
         volume_data = {}
-
         for ticker in tickers:
             symbol = ticker['symbol'].replace('USDT', '')
             try:
@@ -285,9 +228,7 @@ async def fetch_binance_data():
                 current_volume = float(ticker['quoteVolume'])
             except Exception:
                 continue
-
-            # Anlık hesaplamalar (inflow, volume spike)
-            previous_volume = get_previous_volume(symbol)
+            previous_volume = await get_previous_volume(coin_alerts_old, symbol)
             volume_data[symbol] = current_volume
             if previous_volume > 0:
                 inflow_change = (current_volume / previous_volume) - 1
@@ -308,8 +249,6 @@ async def fetch_binance_data():
                         'volume': current_volume,
                         'change': volume_change
                     })
-
-            # Pump Alarmı
             if price_change >= CONFIG["ALERT_THRESHOLDS"]["pump_threshold"]:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Binance Pump Alert: {symbol} ({price_change:.1f}%)")
                 pump_alerts.append({
@@ -317,8 +256,6 @@ async def fetch_binance_data():
                     'price': last_price,
                     'change': price_change
                 })
-
-            # Support Zone Alarmı
             if low_price > 0 and last_price <= low_price * (1 + CONFIG["ALERT_THRESHOLDS"]["support_deviation"] / 100):
                 deviation = ((last_price - low_price) / low_price) * 100
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Binance Support Alert: {symbol} (Deviation: {deviation:.1f}%)")
@@ -328,9 +265,7 @@ async def fetch_binance_data():
                     'low': low_price,
                     'deviation': deviation
                 })
-
-            # --- EKSTRA: 1h Volume Increase (>=2%) ---
-            previous_volume_1h = get_previous_volume_1h(symbol)
+            previous_volume_1h = await get_previous_volume(coin_alerts_1h_old, symbol)
             if previous_volume_1h > 0:
                 vol_change_1h = (current_volume / previous_volume_1h - 1) * 100
                 if vol_change_1h >= 2:
@@ -340,8 +275,7 @@ async def fetch_binance_data():
                         'volume': current_volume,
                         'change': vol_change_1h
                     })
-            # --- EKSTRA: 24h Volume Increase (>=50%) ---
-            previous_volume_24h = get_previous_volume_24h(symbol)
+            previous_volume_24h = await get_previous_volume(coin_alerts_24h_old, symbol)
             if previous_volume_24h > 0:
                 vol_change_24h = (current_volume / previous_volume_24h - 1) * 100
                 if vol_change_24h >= 50:
@@ -351,9 +285,8 @@ async def fetch_binance_data():
                         'volume': current_volume,
                         'change': vol_change_24h
                     })
-        # Tüm coinlerin anlık verilerini kaydet
         for symbol, volume in volume_data.items():
-            save_current_volume(symbol, volume)
+            await save_current_volume(coin_alerts_old, symbol, volume)
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Binance taraması tamamlandı: {len(pump_alerts)} pump, {len(support_alerts)} support, {len(inflow_alerts)} inflow, {len(volume_spike_alerts)} volume")
         return pump_alerts, support_alerts, inflow_alerts, volume_spike_alerts, volume_increase_1h, volume_increase_24h
     except Exception as e:
@@ -388,101 +321,94 @@ async def main_loop():
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Sistem başlatıldı")
     while True:
         try:
-          start_time = datetime.now()
-          print(f"\n[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] Yeni tarama başlatılıyor...")
-          
-          # Geri sayım: Her COUNTDOWN_STEP saniyede bir mesaj gönder, toplam COUNTDOWN_INTERVAL saniye.
-          for remaining in range(CONFIG["COUNTDOWN_INTERVAL"], 0, -CONFIG["COUNTDOWN_STEP"]):
-              countdown_message = f"API çağrısına {remaining} saniye kaldı..."
-              await send_telegram_message(bot, countdown_message)
-              await asyncio.sleep(CONFIG["COUNTDOWN_STEP"])
-          
-          # Süre doldu: API çağrıları yapılıyor.
-          print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] API çağrısına 0 saniye kaldı, veriler çekiliyor...")
-          
-          # Veri çekme
-          cg_volume, cg_support = await fetch_coingecko_data()
-          bn_pump, bn_support, bn_inflow, bn_volume, bn_vol_incr_1h, bn_vol_incr_24h = await fetch_binance_data()
-          
-          # Mesaj oluşturma
-          message_parts = ["🚨 *CRYPTO ALERT SYSTEM* 🚨\n"]
-          
-          # CoinGecko Volume Alerts
-          if cg_volume:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['ratio']:.1f}%"] for item in cg_volume]
-              message_parts.append(create_alert_table("COINGECKO VOLUME ALERTS (V/MCAP >20%)", ["Coin", "Price", "Volume", "Ratio"], table_data))
-          # CoinGecko Support Alerts
-          if cg_support:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", f"${item['low']:.2f}", f"{item['deviation']:+.2f}%"] for item in cg_support]
-              message_parts.append(create_alert_table("COINGECKO SUPPORT ZONE (Price ≤102% of 24h Low)", ["Coin", "Price", "24h Low", "Deviation"], table_data))
-          # Binance Pump Alerts
-          if bn_pump:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", f"{item['change']:.1f}%"] for item in bn_pump]
-              message_parts.append(create_alert_table("BINANCE PUMP ALERTS (24h Change >20%)", ["Coin", "Price", "Change"], table_data))
-          # Binance Support Alerts
-          if bn_support:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", f"${item['low']:.2f}", f"{item['deviation']:+.2f}%"] for item in bn_support]
-              message_parts.append(create_alert_table("BINANCE SUPPORT ZONE (Price ≤102% of 24h Low)", ["Coin", "Price", "24h Low", "Deviation"], table_data))
-          # Binance Inflow Alerts
-          if bn_inflow:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2%}"] for item in bn_inflow]
-              message_parts.append(create_alert_table("BINANCE INFLOW ALERTS (1h Volume Increase >1%)", ["Coin", "Price", "Volume", "Change"], table_data))
-          # Binance Volume Spike Alerts
-          if bn_volume:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2%}"] for item in bn_volume]
-              message_parts.append(create_alert_table("BINANCE VOLUME SPIKE (1h Volume Increase >5%)", ["Coin", "Price", "Volume", "Change"], table_data))
-          # --- EKSTRA: 1h Volume Increase (>=2%) ---
-          if bn_vol_incr_1h:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2f}%"] for item in bn_vol_incr_1h]
-              message_parts.append(create_alert_table("BINANCE 1h VOLUME INCREASE (>=2%)", ["Coin", "Price", "Volume", "Change"], table_data))
-          else:
-              message_parts.append("*BINANCE 1h VOLUME INCREASE (>=2%)*\nNo coins found")
-          # --- EKSTRA: 24h Volume Increase (>=50%) ---
-          if bn_vol_incr_24h:
-              table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2f}%"] for item in bn_vol_incr_24h]
-              message_parts.append(create_alert_table("BINANCE 24h VOLUME INCREASE (>=50%)", ["Coin", "Price", "Volume", "Change"], table_data))
-          else:
-              message_parts.append("*BINANCE 24h VOLUME INCREASE (>=50%)*\nNo coins found")
-          
-          # Footer
-          if len(message_parts) > 1:
-              timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-              message_parts.append(f"\n⏱ *Son Güncelleme:* `{escape_markdown(timestamp)}`")
-              full_message = '\n'.join(message_parts)
-              parts = split_long_message(full_message)
-              for part in parts:
-                  success = await send_telegram_message(bot, part)
-                  if not success:
-                      print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Mesaj gönderilemedi")
-              print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {len(parts)} mesaj başarıyla gönderildi")
-          else:
-              print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Yeni alarm bulunamadı")
-          
-          # Veritabanı rotasyonu: Anlık DB her taramada döndürülüyor
-          rotate_db()
-          # 1h ve 24h rotasyonu zaman kontrolleri
-          now = datetime.now()
-          if (now - last_1h_rotation).total_seconds() >= 3600:
-              rotate_db_1h()
-              last_1h_rotation = now
-          if (now - last_24h_rotation).total_seconds() >= 86400:
-              rotate_db_24h()
-              last_24h_rotation = now
-          
-          duration = (datetime.now() - start_time).total_seconds()
-          print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Tarama süresi: {duration:.2f}s")
-          await asyncio.sleep(CONFIG["SCAN_INTERVAL"])
+            start_time = datetime.now()
+            print(f"\n[{start_time.strftime('%Y-%m-%d %H:%M:%S')}] Yeni tarama başlatılıyor...")
+            
+            # Geri sayım
+            for remaining in range(CONFIG["COUNTDOWN_INTERVAL"], 0, -CONFIG["COUNTDOWN_STEP"]):
+                countdown_message = f"API çağrısına {remaining} saniye kaldı..."
+                await send_telegram_message(bot, countdown_message)
+                await asyncio.sleep(CONFIG["COUNTDOWN_STEP"])
+            
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] API çağrısına 0 saniye kaldı, veriler çekiliyor...")
+            
+            cg_volume, cg_support = await fetch_coingecko_data()
+            bn_pump, bn_support, bn_inflow, bn_volume, bn_vol_incr_1h, bn_vol_incr_24h = await fetch_binance_data()
+            
+            message_parts = ["🚨 *CRYPTO ALERT SYSTEM* 🚨\n"]
+            
+            if cg_volume:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['ratio']:.1f}%"] for item in cg_volume]
+                message_parts.append(create_alert_table("COINGECKO VOLUME ALERTS (V/MCAP >20%)", ["Coin", "Price", "Volume", "Ratio"], table_data))
+            if cg_support:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", f"${item['low']:.2f}", f"{item['deviation']:+.2f}%"] for item in cg_support]
+                message_parts.append(create_alert_table("COINGECKO SUPPORT ZONE (Price ≤102% of 24h Low)", ["Coin", "Price", "24h Low", "Deviation"], table_data))
+            if bn_pump:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", f"{item['change']:.1f}%"] for item in bn_pump]
+                message_parts.append(create_alert_table("BINANCE PUMP ALERTS (24h Change >20%)", ["Coin", "Price", "Change"], table_data))
+            if bn_support:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", f"${item['low']:.2f}", f"{item['deviation']:+.2f}%"] for item in bn_support]
+                message_parts.append(create_alert_table("BINANCE SUPPORT ZONE (Price ≤102% of 24h Low)", ["Coin", "Price", "24h Low", "Deviation"], table_data))
+            if bn_inflow:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2%}"] for item in bn_inflow]
+                message_parts.append(create_alert_table("BINANCE INFLOW ALERTS (1h Volume Increase >1%)", ["Coin", "Price", "Volume", "Change"], table_data))
+            if bn_volume:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2%}"] for item in bn_volume]
+                message_parts.append(create_alert_table("BINANCE VOLUME SPIKE (1h Volume Increase >5%)", ["Coin", "Price", "Volume", "Change"], table_data))
+            if bn_vol_incr_1h:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2f}%"] for item in bn_vol_incr_1h]
+                message_parts.append(create_alert_table("BINANCE 1h VOLUME INCREASE (>=2%)", ["Coin", "Price", "Volume", "Change"], table_data))
+            else:
+                message_parts.append("*BINANCE 1h VOLUME INCREASE (>=2%)*\nNo coins found")
+            if bn_vol_incr_24h:
+                table_data = [[item['symbol'], f"${item['price']:.2f}", format_volume(item['volume']), f"{item['change']:.2f}%"] for item in bn_vol_incr_24h]
+                message_parts.append(create_alert_table("BINANCE 24h VOLUME INCREASE (>=50%)", ["Coin", "Price", "Volume", "Change"], table_data))
+            else:
+                message_parts.append("*BINANCE 24h VOLUME INCREASE (>=50%)*\nNo coins found")
+            
+            if len(message_parts) > 1:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                message_parts.append(f"\n⏱ *Son Güncelleme:* `{escape_markdown(timestamp)}`")
+                full_message = '\n'.join(message_parts)
+                parts = split_long_message(full_message)
+                for part in parts:
+                    success = await send_telegram_message(bot, part)
+                    if not success:
+                        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Mesaj gönderilemedi")
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {len(parts)} mesaj başarıyla gönderildi")
+            else:
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Yeni alarm bulunamadı")
+            
+            # Veritabanı rotasyonu
+            await rotate_db(coin_alerts_old)
+            now = datetime.now()
+            if (now - last_1h_rotation).total_seconds() >= 3600:
+                await rotate_db(coin_alerts_1h_old)
+                last_1h_rotation = now
+            if (now - last_24h_rotation).total_seconds() >= 86400:
+                await rotate_db(coin_alerts_24h_old)
+                last_24h_rotation = now
+            
+            duration = (datetime.now() - start_time).total_seconds()
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Tarama süresi: {duration:.2f}s")
+            await asyncio.sleep(CONFIG["SCAN_INTERVAL"])
         except Exception as e:
-         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Kritik hata: {str(e)}")
-         await asyncio.sleep(CONFIG["ERROR_RETRY_DELAY"])
-        
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Kritik hata: {str(e)}")
+            await asyncio.sleep(CONFIG["ERROR_RETRY_DELAY"])
+            
+# --- WEB SERVİS (FASTAPI) ---
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"status": "Bot Running", "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+@app.on_event("startup")
+async def startup_event():
+    await initialize_db()
+    asyncio.create_task(main_loop())
 
 # --- PROGRAMIN BAŞLATILMASI ---
 if __name__ == "__main__":
-    try:
-        initialize_databases()
-        asyncio.run(main_loop())
-    except KeyboardInterrupt:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Bot kapatılıyor...")
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Beklenmeyen hata: {str(e)}")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("coin:app", host="0.0.0.0", port=port, log_level="info")
