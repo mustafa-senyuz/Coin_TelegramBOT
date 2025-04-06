@@ -3,7 +3,9 @@ import requests
 import sqlite3
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from telegram import Bot, ParseMode
+from telegram import Bot
+from telegram.constants import ParseMode
+
 from datetime import datetime
 
 # Çevresel değişkenlerden BOT_TOKEN alınır.
