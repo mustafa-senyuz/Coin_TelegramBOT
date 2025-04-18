@@ -1,0 +1,9 @@
+requests
+python-telegram-bot
+
+fastapi
+uvicorn
+
+asyncpg
+sqlalchemy
+aiohttp
