@@ -8,8 +8,7 @@ import asyncio
 from datetime import datetime
 
 # Telegram bot bilgileri
-BOT_TOKEN = "7699728190:AAHADXoDkFdEfvgJvW7Wdpf8grcR1smXn5k" # Verdiğiniz bot token
-CHAT_IDS = [-1002281621284, 5637330580] # Mesajın gideceği iki Telegram chat ID'si
+
 
 # API bilgileri
 API_KEY = "1534b0d1-22db-4969-8419-45bc9b7be9be" # Verdiğiniz API key
