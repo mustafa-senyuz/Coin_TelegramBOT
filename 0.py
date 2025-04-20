@@ -10,24 +10,20 @@ import json
 import subprocess
 
 def save_alert_to_json(symbol):
-    # alerts.json dosyasını oku veya oluştur
     if os.path.exists("alerts.json"):
         with open("alerts.json", "r") as f:
             data = json.load(f)
     else:
         data = {}
 
-    # Sembol zaten varsa, tekrar yazma
     if symbol not in data:
         data[symbol] = "alert_sent"
         with open("alerts.json", "w") as f:
             json.dump(data, f, indent=4)
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} alerts.json dosyasına kaydedildi.")
-        git_push()  # JSON dosyasını GitHub'a gönder
     else:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} zaten alerts.json içinde var.")
 
-import subprocess
 
 def git_push():
     subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"])
