@@ -1,0 +1,8 @@
+# Ortak gizli dosyalar
+.env
+*.env
+
+# Diğer yaygın ignore'lar
+__pycache__/
+*.pyc
+.env.*
