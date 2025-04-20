@@ -34,7 +34,8 @@ def git_push():
     subprocess.run(["git", "config", "--global", "user.email", "mustafa_jenkinksproject@outlook.com"])
     subprocess.run(["git", "add", "."])  # Tüm değişiklikleri ekle
     subprocess.run(["git", "commit", "-m", "Auto update from script"])
-    subprocess.run(["git", "push", "origin", "main"])
+    subprocess.run(["git", "push", "origin", "main"], check=True)
+
 
 
 # Yapılandırma
