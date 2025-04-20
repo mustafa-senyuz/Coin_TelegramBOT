@@ -96,9 +96,6 @@ def save_current_volume(symbol, volume, db_file="coin_alertsNEW.db"):
     conn.commit()
     conn.close()
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
-    
-    # Veritabanı değişikliklerini GitHub'a gönder
-    git_push()
 
 # Veritabanı döndürme fonksiyonları (rotate_db_1h, rotate_db_24h, vb.) aynı şekilde devam eder.
 
@@ -487,7 +484,10 @@ async def main_loop():
             if (now - last_24h_rotation).total_seconds() >= 86400:
                 rotate_db_24h()
                 last_24h_rotation = now
-            
+ 
+            # Tüm değişiklikleri tek seferde push et
+            git_push()  # <--- DEĞİŞİKLİK BURADA
+                            
             duration = (datetime.now() - start_time).total_seconds()
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Tarama süresi: {duration:.2f}s")
             await asyncio.sleep(CONFIG["SCAN_INTERVAL"])
