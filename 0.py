@@ -26,11 +26,15 @@ def save_alert_to_json(symbol):
 
 
 def git_push():
-    subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"])
-    subprocess.run(["git", "config", "--global", "user.email", "mustafa_jenkinksproject@outlook.com"])
-    subprocess.run(["git", "add", "."])  # Tüm değişiklikleri ekle
-    subprocess.run(["git", "commit", "-m", "Auto update from script"])
-    subprocess.run(["git", "push", "origin", "main"], check=True)
+    try:
+        subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "mustafa_jenkinksproject@outlook.com"], check=True)
+        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
+        subprocess.run(["git", "push", "origin", "main"], check=True)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklikler başarıyla push edildi")
+    except subprocess.CalledProcessError as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Git hatası: {str(e)}")
 
 
 
