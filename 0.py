@@ -27,12 +27,15 @@ def save_alert_to_json(symbol):
     else:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} zaten alerts.json içinde var.")
 
+import subprocess
+
 def git_push():
-    subprocess.run(["git", "config", "--global", "user.name", "mustafacoding"])
-    subprocess.run(["git", "config", "--global", "user.email", "youremail@example.com"])
-    subprocess.run(["git", "add", "alerts.json"])
-    subprocess.run(["git", "commit", "-m", "update alerts"])
+    subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"])
+    subprocess.run(["git", "config", "--global", "user.email", "mustafa_jenkinksproject@outlook.com"])
+    subprocess.run(["git", "add", "."])  # Tüm değişiklikleri ekle
+    subprocess.run(["git", "commit", "-m", "Auto update from script"])
     subprocess.run(["git", "push", "origin", "main"])
+
 
 # Yapılandırma
 CONFIG = {
@@ -79,8 +82,8 @@ def get_previous_volume(symbol):
     conn.close()
     return result[0] if result else 0
 
-def save_current_volume(symbol, volume):
-    conn = sqlite3.connect("coin_alertsNEW.db")
+def save_current_volume(symbol, volume, db_file="coin_alertsNEW.db"):
+    conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS coin_volumes (
@@ -92,6 +95,14 @@ def save_current_volume(symbol, volume):
     conn.commit()
     conn.close()
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
+    
+    # Veritabanı değişikliklerini GitHub'a gönder
+    git_push()
+
+# Veritabanı döndürme fonksiyonları (rotate_db_1h, rotate_db_24h, vb.) aynı şekilde devam eder.
+
+
+
 
 def rotate_db():
     try:
