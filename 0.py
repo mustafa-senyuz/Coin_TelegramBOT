@@ -8,6 +8,12 @@ from datetime import datetime
 
 import json
 import subprocess
+ 
+from dotenv import load_dotenv
+
+load_dotenv()  # .env dosyasını oku
+
+
 
 def save_alert_to_json(symbol):
     if os.path.exists("alerts.json"):
