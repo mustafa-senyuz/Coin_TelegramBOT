@@ -7,3 +7,5 @@ uvicorn
 asyncpg
 sqlalchemy
 aiohttp
+
+dotenv
