@@ -9,3 +9,5 @@ sqlalchemy
 aiohttp
 
 dotenv
+python-dotenv
+telegram
