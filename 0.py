@@ -32,12 +32,25 @@ def save_alert_to_json(symbol):
 
 
 
+from datetime import datetime
+import subprocess
+import os
+
 def git_push():
     try:
-        # Kullanıcı adı ve e-posta doğru şekilde ayarlandı
+        # GitHub kullanıcı adı ve e-posta ayarı
         subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "mustafasenyuz.git@gmail.com"], check=True)
         
+        # BOT_PAT bilgisini ortam değişkeninden al
+        BOT_PAT = os.getenv("BOT_PAT")
+        if not BOT_PAT:
+            raise Exception("BOT_PAT ortam değişkeni tanımlı değil!")
+
+        # Git URL'sini token ile güncelle
+        repo_url = f"https://{BOT_PAT}@github.com/mustafa-senyuz/Coin_TelegramBOT.git"
+        subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True)
+
         # Değişiklikleri ekle, commit yap ve push et
         subprocess.run(["git", "add", "."], check=True)
         subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
@@ -46,6 +59,9 @@ def git_push():
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklikler başarıyla push edildi")
     except subprocess.CalledProcessError as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Git hatası: {str(e)}")
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Hata: {str(e)}")
+
 
 
 
