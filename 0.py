@@ -39,8 +39,8 @@ import os
 def git_push():
     try:
         # GitHub kullanıcı adı ve e-posta ayarı
-        subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"], check=True)
-        subprocess.run(["git", "config", "--global", "user.email", "mustafasenyuz.git@gmail.com"], check=True)
+        subprocess.run(["git", "config", "--global", "user.name", "mustafa-senyuz"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "config", "--global", "user.email", "mustafasenyuz.git@gmail.com"], check=True, capture_output=True, text=True)
         
         # BOT_PAT bilgisini ortam değişkeninden al
         BOT_PAT = os.getenv("BOT_PAT")
@@ -104,12 +104,15 @@ def initialize_db(file_name):
 def get_previous_volume(symbol):
     if not os.path.exists("db/coin_alertsOLD.db"):
         return 0
-    conn = sqlite3.connect("db/coin_alertsOLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
+    try:
+        with sqlite3.connect("db/coin_alertsOLD.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
+            result = cursor.fetchone()
+            return result[0] if result else 0
+    except sqlite3.Error as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] DB hatası: {str(e)}")
+        return 0
 
 def save_current_volume(symbol, volume, db_file="db/coin_alertsNEW.db"):
     conn = sqlite3.connect(db_file)
@@ -416,20 +419,26 @@ async def fetch_binance_data():
         return [], [], [], [], [], []
 
 # --- MESAJ YÖNETİMİ ---
-async def send_telegram_message(bot, message):
+async def send_telegram_message(bot, message, max_retries=3):
     success = True
     for chat_id in CONFIG["CHAT_IDS"]:
-        try:
-            await bot.send_message(
-                chat_id=chat_id,
-                text=message,
-                parse_mode="MarkdownV2",
-                disable_web_page_preview=True
-            )
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {chat_id} için mesaj gönderme hatası: {str(e)}")
-            success = False
+        retries = 0
+        while retries < max_retries:
+            try:
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text=message,
+                    parse_mode="MarkdownV2",
+                    disable_web_page_preview=True
+                )
+                await asyncio.sleep(1)
+                break
+            except Exception as e:
+                retries += 1
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {chat_id} için mesaj gönderme hatası (Deneme {retries}/{max_retries}): {str(e)}")
+                if retries == max_retries:
+                    success = False
+                await asyncio.sleep(2 ** retries)  # Exponential backoff
     return success
 
 # --- ZAMAN AYARLARI ---
