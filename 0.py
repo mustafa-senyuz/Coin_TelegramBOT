@@ -102,16 +102,16 @@ def initialize_db(file_name):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Veritabanı başlatıldı: {file_name}")
 
 def get_previous_volume(symbol):
-    if not os.path.exists("coin_alertsOLD.db"):
+    if not os.path.exists("db/coin_alertsOLD.db"):
         return 0
-    conn = sqlite3.connect("coin_alertsOLD.db")
+    conn = sqlite3.connect("db/coin_alertsOLD.db")
     cursor = conn.cursor()
     cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else 0
 
-def save_current_volume(symbol, volume, db_file="coin_alertsNEW.db"):
+def save_current_volume(symbol, volume, db_file="db/coin_alertsNEW.db"):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("""
@@ -132,19 +132,19 @@ def save_current_volume(symbol, volume, db_file="coin_alertsNEW.db"):
 
 def rotate_db():
     try:
-        if os.path.exists("coin_alertsOLD.db"):
-            os.remove("coin_alertsOLD.db")
-        if os.path.exists("coin_alertsNEW.db"):
-            os.rename("coin_alertsNEW.db", "coin_alertsOLD.db")
+        if os.path.exists("db/coin_alertsOLD.db"):
+            os.remove("db/coin_alertsOLD.db")
+        if os.path.exists("db/coin_alertsNEW.db"):
+            os.rename("db/coin_alertsNEW.db", "db/coin_alertsOLD.db")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Anlık veritabanı döndürüldü")
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Anlık DB döndürme hatası: {str(e)}")
 
 # 1h DB yönetimi
 def get_previous_volume_1h(symbol):
-    if not os.path.exists("coin_alerts1h_OLD.db"):
+    if not os.path.exists("db/coin_alerts1h_OLD.db"):
         return 0
-    conn = sqlite3.connect("coin_alerts1h_OLD.db")
+    conn = sqlite3.connect("db/coin_alerts1h_OLD.db")
     cursor = conn.cursor()
     cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
     result = cursor.fetchone()
@@ -152,7 +152,7 @@ def get_previous_volume_1h(symbol):
     return result[0] if result else 0
 
 def save_current_volume_1h(symbol, volume):
-    conn = sqlite3.connect("coin_alerts1h_NEW.db")
+    conn = sqlite3.connect("db/coin_alerts1h_NEW.db")
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS coin_volumes (
@@ -166,19 +166,19 @@ def save_current_volume_1h(symbol, volume):
 
 def rotate_db_1h():
     try:
-        if os.path.exists("coin_alerts1h_OLD.db"):
-            os.remove("coin_alerts1h_OLD.db")
-        if os.path.exists("coin_alerts1h_NEW.db"):
-            os.rename("coin_alerts1h_NEW.db", "coin_alerts1h_OLD.db")
+        if os.path.exists("db/coin_alerts1h_OLD.db"):
+            os.remove("db/coin_alerts1h_OLD.db")
+        if os.path.exists("db/coin_alerts1h_NEW.db"):
+            os.rename("db/coin_alerts1h_NEW.db", "db/coin_alerts1h_OLD.db")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h veritabanı döndürüldü")
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h DB döndürme hatası: {str(e)}")
 
 # 24h DB yönetimi
 def get_previous_volume_24h(symbol):
-    if not os.path.exists("coin_alerts24h_OLD.db"):
+    if not os.path.exists("db/coin_alerts24h_OLD.db"):
         return 0
-    conn = sqlite3.connect("coin_alerts24h_OLD.db")
+    conn = sqlite3.connect("db/coin_alerts24h_OLD.db")
     cursor = conn.cursor()
     cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
     result = cursor.fetchone()
@@ -186,7 +186,7 @@ def get_previous_volume_24h(symbol):
     return result[0] if result else 0
 
 def save_current_volume_24h(symbol, volume):
-    conn = sqlite3.connect("coin_alerts24h_NEW.db")
+    conn = sqlite3.connect("db/coin_alerts24h_NEW.db")
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS coin_volumes (
@@ -200,18 +200,18 @@ def save_current_volume_24h(symbol, volume):
 
 def rotate_db_24h():
     try:
-        if os.path.exists("coin_alerts24h_OLD.db"):
-            os.remove("coin_alerts24h_OLD.db")
-        if os.path.exists("coin_alerts24h_NEW.db"):
-            os.rename("coin_alerts24h_NEW.db", "coin_alerts24h_OLD.db")
+        if os.path.exists("db/coin_alerts24h_OLD.db"):
+            os.remove("db/coin_alerts24h_OLD.db")
+        if os.path.exists("db/coin_alerts24h_NEW.db"):
+            os.rename("db/coin_alerts24h_NEW.db", "db/coin_alerts24h_OLD.db")
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h veritabanı döndürüldü")
     except Exception as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h DB döndürme hatası: {str(e)}")
 
 def initialize_databases():
-    initialize_db("coin_alertsOLD.db")
-    initialize_db("coin_alerts1h_OLD.db")
-    initialize_db("coin_alerts24h_OLD.db")
+    initialize_db("db/coin_alertsOLD.db")
+    initialize_db("db/coin_alerts1h_OLD.db")
+    initialize_db("db/coin_alerts24h_OLD.db")
 
 # --- YARDIMCI FONKSİYONLAR ---
 def format_volume(volume):
