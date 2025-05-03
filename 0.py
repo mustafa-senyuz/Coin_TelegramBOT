@@ -234,11 +234,11 @@ def create_alert_table(title, headers, data):
     table_rows = []
     for row in data:
         escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
-        table_rows.append(" | ".join(escaped_row))
+        table_rows.append(" \\| ".join(escaped_row))
 
     table = f"*{escaped_title}*\n```\n"
-    table += " | ".join(escaped_headers) + "\n"
-    table += "-|-|-|-\n"
+    table += " \\| ".join(escaped_headers) + "\n"
+    table += "-\\|-\\|-\\|-\n"
     table += "\n".join(table_rows) + "\n```"
     return table
 
@@ -330,12 +330,14 @@ async def fetch_binance_data():
         volume_data = {}
 
         for ticker in tickers:
-            symbol = ticker['symbol'].replace('USDT', '')
             try:
-                last_price = float(ticker['lastPrice'])
-                low_price = float(ticker['lowPrice'])
-                price_change = float(ticker['priceChangePercent'])
-                current_volume = float(ticker['quoteVolume'])
+                if not isinstance(ticker, dict):
+                    continue
+                symbol = ticker.get('symbol', '').replace('USDT', '')
+                last_price = float(ticker.get('lastPrice', 0))
+                low_price = float(ticker.get('lowPrice', 0))
+                price_change = float(ticker.get('priceChangePercent', 0))
+                current_volume = float(ticker.get('quoteVolume', 0))
             except Exception:
                 continue
 
