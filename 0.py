@@ -234,11 +234,11 @@ def create_alert_table(title, headers, data):
     table_rows = []
     for row in data:
         escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
-        table_rows.append(" \\| ".join(escaped_row))
+        table_rows.append(" | ".join(escaped_row))
 
     table = f"*{escaped_title}*\n```\n"
-    table += " \\| ".join(escaped_headers) + "\n"
-    table += "-\\|-\\|-\\|-\n"
+    table += " | ".join(escaped_headers) + "\n"
+    table += "-|-|-|-\n"
     table += "\n".join(table_rows) + "\n```"
     return table
 
