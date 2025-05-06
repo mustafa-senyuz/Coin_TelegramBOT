@@ -1,0 +1,24 @@
+name: Run Coin Telegram Bot
+
+on:
+  workflow_dispatch:  # Manuel tetiklenebilir (Actions sekmesinden çalıştırılır)
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodları klonla
+        uses: actions/checkout@v3
+
+      - name: Python kurulumu
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Bağımlılıkları yükle
+        run: |
+          pip install -r requirements.txt
+
+      - name: 0.py scriptini çalıştır
+        run: python 0.py
