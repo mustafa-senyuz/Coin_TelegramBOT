@@ -10,7 +10,8 @@ load_dotenv()
 # Configuration
 CONFIG = {
     "BOT_TOKEN": os.getenv("BOT_TOKEN"),
-    "CHAT_IDS": [-1002281621284, 5637330580]
+    "CHAT_IDS": [-1002281621284, 5637330580],
+    "INTERVAL": 60  # Her 60 saniyede bir mesaj gönder
 }
 
 async def send_test_message(message):
@@ -29,8 +30,10 @@ async def send_test_message(message):
             print(f"Error sending to {chat_id}: {str(e)}")
 
 async def main():
-    # Test message with code block
-    message = """
+    while True:  # Sonsuz döngü
+        try:
+            # Test message with table
+            message = """
 🚨 *Test Alert* 🚨
 
 ```
@@ -42,8 +45,14 @@ ETH    | $2K   | +3%
 
 ⏱ Last Update: `2024\-01\-01 12:00:00`
 """
-    
-    await send_test_message(message)
+            await send_test_message(message)
+            print(f"Waiting {CONFIG['INTERVAL']} seconds...")
+            await asyncio.sleep(CONFIG["INTERVAL"])
+            
+        except Exception as e:
+            print(f"Error in main loop: {str(e)}")
+            await asyncio.sleep(5)  # Hata durumunda 5 saniye bekle
 
 if __name__ == "__main__":
+    print("Bot started. Press Ctrl+C to stop.")
     asyncio.run(main())
