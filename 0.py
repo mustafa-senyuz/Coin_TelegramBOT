@@ -230,20 +230,46 @@ def escape_markdown(text):
     escape_chars = {'_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'}
     return ''.join(['\\' + char if char in escape_chars else char for char in str(text)])
 
-def create_alert_table(title, headers, data):
-    escaped_title = escape_markdown(title)
-    escaped_headers = [escape_markdown(h) for h in headers]
-    
-    table_rows = []
-    for row in data:
-        escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
-        table_rows.append(" \\| ".join(escaped_row))
+#   def create_alert_table(title, headers, data):
+#       escaped_title = escape_markdown(title)
+#       escaped_headers = [escape_markdown(h) for h in headers]
+#       
+#       table_rows = []
+#       for row in data:
+#           escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
+#           table_rows.append(" \\| ".join(escaped_row))
+#   
+#       table = f"*{escaped_title}*\n```\n"
+#       table += " \\| ".join(escaped_headers) + "\n"
+#       table += "-\\|-\\|-\\|-\n"
+#       table += "\n".join(table_rows) + "\n```"
+#       return table
 
-    table = f"*{escaped_title}*\n```\n"
-    table += " \\| ".join(escaped_headers) + "\n"
-    table += "-\\|-\\|-\\|-\n"
-    table += "\n".join(table_rows) + "\n```"
+def create_alert_table(title, headers, data):
+    def escape(text):
+        # Markdown V2 için gerekli karakterleri kaçırır
+        escape_chars = {'_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'}
+        return ''.join(['\\' + c if c in escape_chars else c for c in str(text)])
+
+    escaped_title = escape(title)
+    escaped_headers = [escape(h) for h in headers]
+
+    # Tablo başlığı
+    table = f"*{escaped_title}*\n"
+    table += "```\n"  # Kod bloğu başlat
+
+    # Başlık satırı
+    table += " | ".join(escaped_headers) + "\n"
+    table += "-|-" * len(escaped_headers) + "\n"  # Ayırıcı satır
+
+    # Veri satırları
+    for row in data:
+        escaped_row = [escape(cell) for cell in row]
+        table += " | ".join(escaped_row) + "\n"
+
+    table += "```"  # Kod bloğu kapat
     return table
+
 
 def split_long_message(full_message, max_length=4096):
     parts = []
