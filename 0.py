@@ -244,20 +244,28 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def create_alert_table(title, headers, data):
-    # Escape the title and wrap in asterisks
-    escaped_title = escape_markdown_v2(title)
+    # Escape all special characters in title
+    escaped_title = escape_markdown_v2(title.replace('(', '\\(').replace(')', '\\)'))
     table = [f"*{escaped_title}*\n"]
     
-    # Add code block markers
+    # Add code block markers and use monospace for table
     table.append("```")
     
     # Add headers
-    table.append(" | ".join(headers))
+    header_row = " | ".join(headers)
+    table.append(header_row)
     table.append("-" * (sum(len(h) for h in headers) + (len(headers) - 1) * 3))
     
     # Add data rows
     for row in data:
-        formatted_row = [str(cell) for cell in row]
+        # Format each cell and ensure numbers are properly formatted
+        formatted_row = []
+        for cell in row:
+            if isinstance(cell, (int, float)):
+                cell_str = f"{cell:,.2f}" if isinstance(cell, float) else str(cell)
+            else:
+                cell_str = str(cell)
+            formatted_row.append(cell_str)
         table.append(" | ".join(formatted_row))
     
     # Close code block
