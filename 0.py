@@ -244,16 +244,17 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def create_alert_table(title, headers, data):
-    # Clean and escape title
-    clean_title = title.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
+    # Clean title from special characters completely
+    clean_title = title.replace('(', '').replace(')', '').replace('>', '').replace('<', '')
     escaped_title = escape_markdown_v2(clean_title)
     table_lines = [f"*{escaped_title}*\n"]
     
-    # Add code block markers
+    # Add code block markers with special formatting for Telegram
     table_lines.append("```")
     
-    # Add headers
-    table_lines.append(" | ".join(headers))
+    # Add headers without special characters
+    header_row = " | ".join(h.replace('(', '').replace(')', '') for h in headers)
+    table_lines.append(header_row)
     table_lines.append("-" * (sum(len(h) for h in headers) + (len(headers) - 1) * 3))
     
     # Add data rows
