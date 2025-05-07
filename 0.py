@@ -542,4 +542,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Bot kapatılıyor...")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Beklenmeyen hata: {str(e)}")
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Beklenmeyen hata: {str(e)}")                                                                                                                                                                                                                                                              
