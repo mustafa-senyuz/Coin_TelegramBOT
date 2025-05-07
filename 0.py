@@ -115,18 +115,18 @@ def get_previous_volume(symbol):
         return 0
 
 def save_current_volume(symbol, volume, db_file="db/coin_alertsNEW.db"):
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
-        )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(db_file) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS coin_volumes (
+                symbol TEXT PRIMARY KEY,
+                previous_volume REAL
+            )
+        """)
+        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+        conn.commit()
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
+
 
 # Veritabanı döndürme fonksiyonları (rotate_db_1h, rotate_db_24h, vb.) aynı şekilde devam eder.
 
@@ -147,25 +147,29 @@ def rotate_db():
 def get_previous_volume_1h(symbol):
     if not os.path.exists("db/coin_alerts1h_OLD.db"):
         return 0
-    conn = sqlite3.connect("db/coin_alerts1h_OLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
+    try:
+        with sqlite3.connect("db/coin_alerts1h_OLD.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
+            result = cursor.fetchone()
+            return result[0] if result else 0
+    except sqlite3.Error as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h DB hatası: {str(e)}")
+        return 0
+
 
 def save_current_volume_1h(symbol, volume):
-    conn = sqlite3.connect("db/coin_alerts1h_NEW.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
-        )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect("db/coin_alerts1h_NEW.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS coin_volumes (
+                symbol TEXT PRIMARY KEY,
+                previous_volume REAL
+            )
+        """)
+        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+        conn.commit()
+
 
 def rotate_db_1h():
     try:
@@ -181,25 +185,29 @@ def rotate_db_1h():
 def get_previous_volume_24h(symbol):
     if not os.path.exists("db/coin_alerts24h_OLD.db"):
         return 0
-    conn = sqlite3.connect("db/coin_alerts24h_OLD.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else 0
+    try:
+        with sqlite3.connect("db/coin_alerts24h_OLD.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
+            result = cursor.fetchone()
+            return result[0] if result else 0
+    except sqlite3.Error as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h DB hatası: {str(e)}")
+        return 0
+
 
 def save_current_volume_24h(symbol, volume):
-    conn = sqlite3.connect("db/coin_alerts24h_NEW.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS coin_volumes (
-            symbol TEXT PRIMARY KEY,
-            previous_volume REAL
-        )
-    """)
-    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect("db/coin_alerts24h_NEW.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS coin_volumes (
+                symbol TEXT PRIMARY KEY,
+                previous_volume REAL
+            )
+        """)
+        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+        conn.commit()
+
 
 def rotate_db_24h():
     try:
