@@ -258,21 +258,29 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def create_alert_table(title, headers, data):
+    # Escape the title for markdown
     escaped_title = escape_markdown_v2(title)
+    
+    # Start with the escaped title
     table = f"*{escaped_title}*\n"
-    table += "```\n"  # Plain code block without language specification
     
-    # Create header row
+    # Create the table content without escaping inside code block
+    table_content = ""
+    
+    # Add header row
     header_row = " | ".join(headers)
-    table += header_row + "\n"
-    table += "-" * len(header_row) + "\n"
+    table_content += header_row + "\n"
+    table_content += "-" * len(header_row) + "\n"
     
-    # Create data rows
+    # Add data rows
     for row in data:
         formatted_row = [str(cell) for cell in row]
-        table += " | ".join(formatted_row) + "\n"
+        table_content += " | ".join(formatted_row) + "\n"
     
-    table += "```"
+    # Wrap the table content in a code block
+    # Code blocks don't need escaping for their content
+    table += f"```\n{table_content}```"
+    
     return table
 
 
