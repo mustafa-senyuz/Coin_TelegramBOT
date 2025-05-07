@@ -31,11 +31,11 @@ args = "if [ ! -f \".dependencies_installed\" ]; then"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "  pip install -r requirements.txt"
+args = "    pip install -r requirements.txt"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "  touch .dependencies_installed"
+args = "    touch .dependencies_installed"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
