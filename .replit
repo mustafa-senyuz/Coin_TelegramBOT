@@ -19,28 +19,3 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python 0.py"
-
-[[workflows.workflow]]
-name = "Telegram Bot"
-author = 42014373
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "if [ ! -f \".dependencies_installed\" ]; then"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "    pip install -r requirements.txt"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "    touch .dependencies_installed"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "fi"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python 0.py"
