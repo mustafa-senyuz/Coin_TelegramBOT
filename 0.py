@@ -245,37 +245,37 @@ def escape_markdown_v2(text: str) -> str:
 
 def create_alert_table(title, headers, data):
     # Clean and escape title
-    title = title.replace('(', '').replace(')', '').replace('>', '').replace('<', '')
-    escaped_title = '*' + escape_markdown_v2(title) + '*\n'
+    clean_title = title.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
+    escaped_title = escape_markdown_v2(clean_title)
+    table_lines = [f"*{escaped_title}*\n"]
     
-    # Create table content without markdown escaping (since it's in a code block)
-    table_lines = []
-    table_lines.append(escaped_title)
-    table_lines.append('```')
+    # Add code block markers
+    table_lines.append("```")
     
     # Add headers
-    header_row = " | ".join(headers)
-    table_lines.append(header_row)
+    table_lines.append(" | ".join(headers))
     table_lines.append("-" * (sum(len(h) for h in headers) + (len(headers) - 1) * 3))
     
     # Add data rows
     for row in data:
-        # Format each cell and ensure numbers are properly formatted
+        # Format each cell
         formatted_row = []
         for cell in row:
             if isinstance(cell, (int, float)):
                 cell_str = f"{cell:,.2f}" if isinstance(cell, float) else str(cell)
             else:
                 cell_str = str(cell)
-            # Replace problematic characters with full-width alternatives
-            cell_str = cell_str.replace('(', '').replace(')', '').replace('>', '').replace('<', '')
+            # Replace special characters with full-width alternatives
+            cell_str = (cell_str.replace('(', '［')
+                               .replace(')', '］')
+                               .replace('>', '＞')
+                               .replace('<', '＜'))
             formatted_row.append(cell_str)
         table_lines.append(" | ".join(formatted_row))
     
     # Close code block
-    table_lines.append('```')
+    table_lines.append("```")
     
-    # Join all parts with newlines
     return "\n".join(table_lines)
 
 
