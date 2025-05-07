@@ -115,18 +115,18 @@ def get_previous_volume(symbol):
         return 0
 
 def save_current_volume(symbol, volume, db_file="db/coin_alertsNEW.db"):
-    with sqlite3.connect(db_file) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS coin_volumes (
-                symbol TEXT PRIMARY KEY,
-                previous_volume REAL
-            )
-        """)
-        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-        conn.commit()
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS coin_volumes (
+            symbol TEXT PRIMARY KEY,
+            previous_volume REAL
+        )
+    """)
+    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+    conn.commit()
+    conn.close()
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} anlık hacmi güncellendi: {volume}")
-
 
 # Veritabanı döndürme fonksiyonları (rotate_db_1h, rotate_db_24h, vb.) aynı şekilde devam eder.
 
@@ -147,29 +147,25 @@ def rotate_db():
 def get_previous_volume_1h(symbol):
     if not os.path.exists("db/coin_alerts1h_OLD.db"):
         return 0
-    try:
-        with sqlite3.connect("db/coin_alerts1h_OLD.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-            result = cursor.fetchone()
-            return result[0] if result else 0
-    except sqlite3.Error as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 1h DB hatası: {str(e)}")
-        return 0
-
+    conn = sqlite3.connect("db/coin_alerts1h_OLD.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else 0
 
 def save_current_volume_1h(symbol, volume):
-    with sqlite3.connect("db/coin_alerts1h_NEW.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS coin_volumes (
-                symbol TEXT PRIMARY KEY,
-                previous_volume REAL
-            )
-        """)
-        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-        conn.commit()
-
+    conn = sqlite3.connect("db/coin_alerts1h_NEW.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS coin_volumes (
+            symbol TEXT PRIMARY KEY,
+            previous_volume REAL
+        )
+    """)
+    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+    conn.commit()
+    conn.close()
 
 def rotate_db_1h():
     try:
@@ -185,29 +181,25 @@ def rotate_db_1h():
 def get_previous_volume_24h(symbol):
     if not os.path.exists("db/coin_alerts24h_OLD.db"):
         return 0
-    try:
-        with sqlite3.connect("db/coin_alerts24h_OLD.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
-            result = cursor.fetchone()
-            return result[0] if result else 0
-    except sqlite3.Error as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 24h DB hatası: {str(e)}")
-        return 0
-
+    conn = sqlite3.connect("db/coin_alerts24h_OLD.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT previous_volume FROM coin_volumes WHERE symbol = ?", (symbol,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else 0
 
 def save_current_volume_24h(symbol, volume):
-    with sqlite3.connect("db/coin_alerts24h_NEW.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS coin_volumes (
-                symbol TEXT PRIMARY KEY,
-                previous_volume REAL
-            )
-        """)
-        cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
-        conn.commit()
-
+    conn = sqlite3.connect("db/coin_alerts24h_NEW.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS coin_volumes (
+            symbol TEXT PRIMARY KEY,
+            previous_volume REAL
+        )
+    """)
+    cursor.execute("INSERT OR REPLACE INTO coin_volumes (symbol, previous_volume) VALUES (?, ?)", (symbol, volume))
+    conn.commit()
+    conn.close()
 
 def rotate_db_24h():
     try:
@@ -238,32 +230,20 @@ def escape_markdown(text):
     escape_chars = {'_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'}
     return ''.join(['\\' + char if char in escape_chars else char for char in str(text)])
 
-
 def create_alert_table(title, headers, data):
-    def escape(text):
-        # Markdown V2 için gerekli karakterleri kaçırır
-        escape_chars = {'_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'}
-        return ''.join(['\\' + c if c in escape_chars else c for c in str(text)])
-
-    escaped_title = escape(title)
-    escaped_headers = [escape(h) for h in headers]
-
-    # Tablo başlığı
-    table = f"*{escaped_title}*\n"
-    table += "```\n"  # Kod bloğu başlat
-
-    # Başlık satırı
-    table += " | ".join(escaped_headers) + "\n"
-    table += "-|-" * len(escaped_headers) + "\n"  # Ayırıcı satır
-
-    # Veri satırları
+    escaped_title = escape_markdown(title)
+    escaped_headers = [escape_markdown(h) for h in headers]
+    
+    table_rows = []
     for row in data:
-        escaped_row = [escape(cell) for cell in row]
-        table += " | ".join(escaped_row) + "\n"
+        escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
+        table_rows.append(" \\| ".join(escaped_row))
 
-    table += "```"  # Kod bloğu kapat
+    table = f"*{escaped_title}*\n```\n"
+    table += " \\| ".join(escaped_headers) + "\n"
+    table += "-\\|-\\|-\\|-\n"
+    table += "\n".join(table_rows) + "\n```"
     return table
-
 
 def split_long_message(full_message, max_length=4096):
     parts = []
@@ -562,4 +542,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Bot kapatılıyor...")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Beklenmeyen hata: {str(e)}")                                                                                                                                                                                                                                                              
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Beklenmeyen hata: {str(e)}")
