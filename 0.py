@@ -230,20 +230,48 @@ def escape_markdown(text):
     escape_chars = {'_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'}
     return ''.join(['\\' + char if char in escape_chars else char for char in str(text)])
 
+#   def create_alert_table(title, headers, data):
+#       escaped_title = escape_markdown(title)
+#       escaped_headers = [escape_markdown(h) for h in headers]
+#       
+#       table_rows = []
+#       for row in data:
+#           escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
+#           table_rows.append(" \\| ".join(escaped_row))
+#   
+#       table = f"*{escaped_title}*\n```\n"
+#       table += " \\| ".join(escaped_headers) + "\n"
+#       table += "-\\|-\\|-\\|-\n"
+#       table += "\n".join(table_rows) + "\n```"
+#       return table
+
+def escape_markdown_v2(text: str) -> str:
+    to_escape = r'_*\[\]()~`>#+-=|{}.!'
+    return ''.join(f'\\{c}' if c in to_escape else c for c in text)
+
+
+
 def create_alert_table(title, headers, data):
-    escaped_title = escape_markdown(title)
-    escaped_headers = [escape_markdown(h) for h in headers]
+    escaped_title = escape_markdown_v2(title)
+    escaped_headers = [escape_markdown_v2(h) for h in headers]
     
     table_rows = []
     for row in data:
-        escaped_row = [escape_markdown(str(cell).replace('`', '\\`')) for cell in row]
-        table_rows.append(" \\| ".join(escaped_row))
+        escaped_row = [escape_markdown_v2(str(cell)) for cell in row]
+        table_rows.append(" | ".join(escaped_row))
 
-    table = f"*{escaped_title}*\n```\n"
-    table += " \\| ".join(escaped_headers) + "\n"
-    table += "-\\|-\\|-\\|-\n"
+    table = f"*{escaped_title}*\n"
+    table += "```text\n"  # Use 'text' to avoid Markdown table formatting issues
+    table += " | ".join(escaped_headers) + "\n"
+    table += "---|" * len(escaped_headers)
+    table = table.rstrip('|') + "\n"
     table += "\n".join(table_rows) + "\n```"
     return table
+
+
+
+
+
 
 def split_long_message(full_message, max_length=4096):
     parts = []
