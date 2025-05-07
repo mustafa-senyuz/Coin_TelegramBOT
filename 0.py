@@ -244,18 +244,19 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def create_alert_table(title, headers, data):
-    # Remove special characters from title before escaping
-    clean_title = title.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
-    escaped_title = escape_markdown_v2(clean_title)
-    table = [f"*{escaped_title}*\n"]
+    # Clean and escape title
+    title = title.replace('(', '').replace(')', '').replace('>', '').replace('<', '')
+    escaped_title = '*' + escape_markdown_v2(title) + '*\n'
     
-    # Add code block markers and use monospace for table
-    table.append("```")
+    # Create table content without markdown escaping (since it's in a code block)
+    table_lines = []
+    table_lines.append(escaped_title)
+    table_lines.append('```')
     
     # Add headers
     header_row = " | ".join(headers)
-    table.append(header_row)
-    table.append("-" * (sum(len(h) for h in headers) + (len(headers) - 1) * 3))
+    table_lines.append(header_row)
+    table_lines.append("-" * (sum(len(h) for h in headers) + (len(headers) - 1) * 3))
     
     # Add data rows
     for row in data:
@@ -267,15 +268,15 @@ def create_alert_table(title, headers, data):
             else:
                 cell_str = str(cell)
             # Replace problematic characters with full-width alternatives
-            cell_str = cell_str.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
+            cell_str = cell_str.replace('(', '').replace(')', '').replace('>', '').replace('<', '')
             formatted_row.append(cell_str)
-        table.append(" | ".join(formatted_row))
+        table_lines.append(" | ".join(formatted_row))
     
     # Close code block
-    table.append("```")
+    table_lines.append('```')
     
     # Join all parts with newlines
-    return "\n".join(table)
+    return "\n".join(table_lines)
 
 
 
