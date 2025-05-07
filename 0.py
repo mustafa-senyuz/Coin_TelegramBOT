@@ -244,8 +244,9 @@ def escape_markdown_v2(text: str) -> str:
 
 
 def create_alert_table(title, headers, data):
-    # Escape all special characters in title
-    escaped_title = escape_markdown_v2(title.replace('(', '\\(').replace(')', '\\)'))
+    # Remove special characters from title before escaping
+    clean_title = title.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
+    escaped_title = escape_markdown_v2(clean_title)
     table = [f"*{escaped_title}*\n"]
     
     # Add code block markers and use monospace for table
@@ -265,6 +266,8 @@ def create_alert_table(title, headers, data):
                 cell_str = f"{cell:,.2f}" if isinstance(cell, float) else str(cell)
             else:
                 cell_str = str(cell)
+            # Replace problematic characters with full-width alternatives
+            cell_str = cell_str.replace('(', '［').replace(')', '］').replace('>', '＞').replace('<', '＜')
             formatted_row.append(cell_str)
         table.append(" | ".join(formatted_row))
     
