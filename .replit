@@ -1,12 +1,12 @@
 modules = ["python-3.12"]
-run = "uvicorn undefined:app --host 0.0.0.0 --port 3000"
+run = "uvicorn 0:app --host 0.0.0.0 --port 3000"
 
 [nix]
 channel = "stable-24_05"
 packages = ["postgresql"]
 
 [deployment]
-run = ["sh", "-c", "uvicorn undefined:app --host 0.0.0.0 --port 3000"]
+run = ["sh", "-c", "uvicorn 0:app --host 0.0.0.0 --port 3000"]
 
 [workflows]
 runButton = "Run"
@@ -19,3 +19,7 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python 0.py"
+
+[[ports]]
+localPort = 3000
+externalPort = 80

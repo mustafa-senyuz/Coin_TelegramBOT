@@ -11,3 +11,7 @@ aiohttp
 dotenv
 python-dotenv
 telegram
+
+fastapi>=0.110.0
+
+flask
