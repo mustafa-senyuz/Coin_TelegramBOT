@@ -10,6 +10,7 @@ for chat_id in CHAT_IDS:
         data={
             "chat_id": chat_id,
             "text": TEXT
-        }
+        })
+    print(
+        f"Chat ID {chat_id} - Status Code: {response.status_code}, Response: {response.json()}"
     )
-    print(f"Chat ID {chat_id} - Status Code: {response.status_code}, Response: {response.json()}")
