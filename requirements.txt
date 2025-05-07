@@ -1,8 +1,8 @@
 requests
 python-telegram-bot
 
-fastapi
-uvicorn
+#fastapi
+#uvicorn
 
 asyncpg
 sqlalchemy
@@ -12,6 +12,5 @@ dotenv
 python-dotenv
 telegram
 
-fastapi>=0.110.0
-
 flask
+

@@ -778,8 +778,14 @@ def get_alerts():
 
 
 def run_flask():
-    """Flask'ı ayrı bir thread'de çalıştır"""
-    app.run(host='0.0.0.0', port=3000)
+    app.run(
+        host='0.0.0.0',
+        port=3000,
+        debug=False,
+        use_reloader=False,
+        # Aşağıdaki parametreler önemli!
+        load_dotenv=False,
+        passthrough_errors=True)
 
 
 # --- PROGRAMIN BAŞLATILMASI ---
