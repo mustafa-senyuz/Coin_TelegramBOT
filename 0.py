@@ -51,11 +51,13 @@ def git_push():
         repo_url = f"https://{BOT_PAT}@github.com/mustafa-senyuz/Coin_TelegramBOT.git"
         subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True)
 
-        # Check if there are any changes
+        # Force add all changes
+        subprocess.run(["git", "add", "-A"], check=True)
+        
+        # Check status after adding
         status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip()
         
-        if status:  # Only commit if there are changes
-            subprocess.run(["git", "add", "."], check=True)
+        if status:
             subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
             subprocess.run(["git", "push", "origin", "main"], check=True)
             print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklikler başarıyla push edildi")
