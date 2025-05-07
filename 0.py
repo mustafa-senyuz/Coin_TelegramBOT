@@ -51,12 +51,16 @@ def git_push():
         repo_url = f"https://{BOT_PAT}@github.com/mustafa-senyuz/Coin_TelegramBOT.git"
         subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True)
 
-        # Değişiklikleri ekle, commit yap ve push et
-        subprocess.run(["git", "add", "."], check=True)
-        subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
-        subprocess.run(["git", "push", "origin", "main"], check=True)
-
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklikler başarıyla push edildi")
+        # Check if there are any changes
+        status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip()
+        
+        if status:  # Only commit if there are changes
+            subprocess.run(["git", "add", "."], check=True)
+            subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
+            subprocess.run(["git", "push", "origin", "main"], check=True)
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklikler başarıyla push edildi")
+        else:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Değişiklik yok, push işlemi atlandı")
     except subprocess.CalledProcessError as e:
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Git hatası: {str(e)}")
     except Exception as e:
@@ -253,19 +257,20 @@ def escape_markdown_v2(text: str) -> str:
 
 def create_alert_table(title, headers, data):
     escaped_title = escape_markdown_v2(title)
-    escaped_headers = [escape_markdown_v2(h) for h in headers]
-    
-    table_rows = []
-    for row in data:
-        escaped_row = [escape_markdown_v2(str(cell)) for cell in row]
-        table_rows.append(" | ".join(escaped_row))
-
     table = f"*{escaped_title}*\n"
-    table += "```text\n"  # Use 'text' to avoid Markdown table formatting issues
-    table += " | ".join(escaped_headers) + "\n"
-    table += "---|" * len(escaped_headers)
-    table = table.rstrip('|') + "\n"
-    table += "\n".join(table_rows) + "\n```"
+    table += "```\n"  # Plain code block without language specification
+    
+    # Create header row
+    header_row = " | ".join(headers)
+    table += header_row + "\n"
+    table += "-" * len(header_row) + "\n"
+    
+    # Create data rows
+    for row in data:
+        formatted_row = [str(cell) for cell in row]
+        table += " | ".join(formatted_row) + "\n"
+    
+    table += "```"
     return table
 
 
