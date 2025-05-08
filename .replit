@@ -1,5 +1,6 @@
 
-run = "pip install -r requirements.txt && python 0.py --host 0.0.0.0 --port 3000"
+run = "python 0.py --host 0.0.0.0 --port 3000"
+modules = ["python-3.11"]
 
 [env]
 FLASK_APP = "0.py"
@@ -8,12 +9,7 @@ PORT = "3000"
 
 [nix]
 channel = "stable-24_05"
-packages = [
-  "postgresql",
-  "python310Full",
-  "python310Packages.flask",
-  "python310Packages.requests",
-]
+packages = ["postgresql", "python310Full", "python310Packages.flask", "python310Packages.requests"]
 
 [deployment]
 run = ["python", "0.py"]
