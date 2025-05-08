@@ -8,12 +8,7 @@ PORT = "3000"
 
 [nix]
 channel = "stable-24_05"
-packages = [
-  "postgresql",
-  "python310Full",
-  "python310Packages.flask",
-  "python310Packages.requests",
-]
+packages = ["postgresql", "python310Full", "python310Packages.flask", "python310Packages.requests"]
 
 [deployment]
 run = ["python", "0.py"]
@@ -23,6 +18,7 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Run"
