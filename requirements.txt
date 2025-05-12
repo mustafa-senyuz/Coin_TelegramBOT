@@ -14,4 +14,4 @@ telegram
 
 flask
 
-httpcore[asyncio]
+httpcore[asyncio]==1.0.2
