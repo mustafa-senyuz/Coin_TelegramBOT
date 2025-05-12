@@ -32,3 +32,7 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Run"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python db_test.py"
