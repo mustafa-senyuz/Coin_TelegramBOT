@@ -5,12 +5,67 @@ from datetime import datetime
 from telegram import Bot
 import asyncio
 from dotenv import load_dotenv
+import subprocess
 
 # Load environment variables
 load_dotenv()
 
 # Configuration
 CONFIG = {
+
+def git_push():
+    try:
+        # GitHub kullanıcı adı ve e-posta ayarı
+        subprocess.run(
+            ["git", "config", "--global", "user.name", "mustafa-senyuz"],
+            check=True,
+            capture_output=True,
+            text=True)
+        subprocess.run([
+            "git", "config", "--global", "user.email",
+            "mustafasenyuz.git@gmail.com"
+        ],
+                       check=True,
+                       capture_output=True,
+                       text=True)
+
+        # BOT_PAT bilgisini ortam değişkeninden al
+        BOT_PAT = os.getenv("BOT_PAT")
+        if not BOT_PAT:
+            raise Exception("BOT_PAT ortam değişkeni tanımlı değil!")
+
+        # Git URL'sini token ile güncelle
+        repo_url = f"https://{BOT_PAT}@github.com/mustafa-senyuz/Coin_TelegramBOT.git"
+        subprocess.run(["git", "remote", "set-url", "origin", repo_url],
+                       check=True)
+
+        # Force add all changes
+        subprocess.run(["git", "add", "-A"], check=True)
+
+        # Check status after adding
+        status = subprocess.run(["git", "status", "--porcelain"],
+                                capture_output=True,
+                                text=True).stdout.strip()
+
+        if status:
+            subprocess.run(["git", "commit", "-m", "Auto update from script"],
+                           check=True)
+            subprocess.run(["git", "push", "origin", "main"], check=True)
+            print(
+                f"[{datetime.now()}] Değişiklikler başarıyla push edildi"
+            )
+        else:
+            print(
+                f"[{datetime.now()}] Değişiklik yok, push işlemi atlandı"
+            )
+    except subprocess.CalledProcessError as e:
+        print(
+            f"[{datetime.now()}] Git hatası: {str(e)}"
+        )
+    except Exception as e:
+        print(
+            f"[{datetime.now()}] Hata: {str(e)}")
+
     "BOT_TOKEN": os.getenv("BOT_TOKEN"),
     "CHAT_IDS": [-1002281621284, 5637330580],
     "TEST_INTERVAL": 10  # Test every 10 seconds
@@ -112,6 +167,9 @@ async def main():
                      f"✅ Data saved to databases"
             
             await send_telegram_message(message)
+            
+            # Git push işlemini çağır
+            git_push()
             
             print(f"[{datetime.now()}] Test #{test_count} completed")
             await asyncio.sleep(CONFIG["TEST_INTERVAL"])
