@@ -1,0 +1,25 @@
+[2025-05-12 22:05:29.043947] Error sending to -1002281621284 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:31.046650] Error sending to -1002281621284 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:33.049501] Error sending to -1002281621284 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:35.052031] Error sending to 5637330580 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:37.054870] Error sending to 5637330580 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:39.057232] Error sending to 5637330580 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:41.061289] Test #1 completed
+[2025-05-12 22:05:51.137507] Data saved to db/test_1h.db: Test value #2
+[2025-05-12 22:05:51.163348] Data saved to db/test_24h.db: Test value #2
+[2025-05-12 22:05:51.243741] Error sending to -1002281621284 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:53.245930] Error sending to -1002281621284 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:55.248384] Error sending to -1002281621284 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:57.251353] Error sending to 5637330580 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:05:59.254169] Error sending to 5637330580 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:01.257062] Error sending to 5637330580 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:03.260674] Test #2 completed
+[2025-05-12 22:06:13.322107] Data saved to db/test_1h.db: Test value #3
+[2025-05-12 22:06:13.336224] Data saved to db/test_24h.db: Test value #3
+[2025-05-12 22:06:13.386922] Error sending to -1002281621284 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:15.389471] Error sending to -1002281621284 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:17.392200] Error sending to -1002281621284 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:19.395117] Error sending to 5637330580 (Try 1/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:21.397967] Error sending to 5637330580 (Try 2/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:23.400374] Error sending to 5637330580 (Try 3/3): Unknown error in HTTP implementation: RuntimeError("Running with asyncio requires installation of 'httpcore[asyncio]'.")
+[2025-05-12 22:06:25.404049] Test #3 completed
