@@ -19,15 +19,15 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
-runButton = "Run"
 
 [[workflows.workflow]]
 name = "Run"
 author = 42014373
-mode = "parallel"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
-task = "packager.installForAll"
+task = "packager.installForLanguage"
+args = "python3"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
