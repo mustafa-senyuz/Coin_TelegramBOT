@@ -20,6 +20,14 @@ CONFIG = {
 bot = telebot.TeleBot(CONFIG["BOT_TOKEN"])
 
 
+def escape_markdown_v2(text: str) -> str:
+    """
+    Kaçması gereken MarkdownV2 karakterlerini önüne '\' ekleyerek döner.
+    """
+    escape_chars = '_*[]()~`>#+-=|{}.!'
+    return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
+
+
 def git_push():
     try:
         subprocess.run(
@@ -104,7 +112,8 @@ def rotate_db(old_db, new_db):
         print(f"[{datetime.now()}] Database rotation error: {e}")
 
 
-def send_telegram_message(message, max_retries=3):
+def send_telegram_message(message: str, max_retries=3):
+    # message zaten kaçışlı geliyor
     for chat_id in CONFIG["CHAT_IDS"]:
         retries = 0
         while retries < max_retries:
@@ -150,12 +159,16 @@ def main():
                 rotate_db('db/test_24h_old.db', 'db/test_24h.db')
                 last_24h_rotation = current_time
 
-            # Send test message
+            # Build escaped message
+            timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            escaped_ts = escape_markdown_v2(timestamp)
+            escaped_value = escape_markdown_v2(test_value)
             message = (f"🔍 *Database Test*\n\n"
                        f"Test \\#{test_count}\n"
-                       f"Time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-                       f"Value: {test_value}\n\n"
+                       f"Time: `{escaped_ts}`\n"
+                       f"Value: `{escaped_value}`\n\n"
                        f"✅ Data saved to databases")
+
             send_telegram_message(message)
 
             # Git push işlemini çağır
