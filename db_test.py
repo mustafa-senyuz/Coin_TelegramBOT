@@ -1,12 +1,12 @@
 import os
+import time
 import sqlite3
-from datetime import datetime
-from telegram import Bot
-import asyncio
-from dotenv import load_dotenv
 import subprocess
+from datetime import datetime
+import telebot
+from dotenv import load_dotenv
 
-# Load environment variables
+# .env dosyasını yükle
 load_dotenv()
 
 # Configuration
@@ -16,49 +16,50 @@ CONFIG = {
     "TEST_INTERVAL": 10  # Test every 10 seconds
 }
 
+# Senkron Telegram botu
+bot = telebot.TeleBot(CONFIG["BOT_TOKEN"])
+
+
 def git_push():
     try:
-        # GitHub kullanıcı adı ve e-posta ayarı
         subprocess.run(
             ["git", "config", "--global", "user.name", "mustafa-senyuz"],
             check=True,
             capture_output=True,
-            text=True
-        )
-        subprocess.run(
-            ["git", "config", "--global", "user.email", "mustafasenyuz.git@gmail.com"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
+            text=True)
+        subprocess.run([
+            "git", "config", "--global", "user.email",
+            "mustafasenyuz.git@gmail.com"
+        ],
+                       check=True,
+                       capture_output=True,
+                       text=True)
 
-        # BOT_PAT bilgisini ortam değişkeninden al
         BOT_PAT = os.getenv("BOT_PAT")
         if not BOT_PAT:
             raise Exception("BOT_PAT ortam değişkeni tanımlı değil!")
 
-        # Git URL'sini token ile güncelle
         repo_url = f"https://{BOT_PAT}@github.com/mustafa-senyuz/Coin_TelegramBOT.git"
-        subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True)
+        subprocess.run(["git", "remote", "set-url", "origin", repo_url],
+                       check=True)
 
-        # Force add all changes
         subprocess.run(["git", "add", "-A"], check=True)
-
-        # Check status after adding
         status = subprocess.run(["git", "status", "--porcelain"],
-                                capture_output=True, text=True).stdout.strip()
+                                capture_output=True,
+                                text=True).stdout.strip()
 
         if status:
-            subprocess.run(["git", "commit", "-m", "Auto update from script"], check=True)
+            subprocess.run(["git", "commit", "-m", "Auto update from script"],
+                           check=True)
             subprocess.run(["git", "push", "origin", "main"], check=True)
             print(f"[{datetime.now()}] Değişiklikler başarıyla push edildi")
         else:
             print(f"[{datetime.now()}] Değişiklik yok, push işlemi atlandı")
 
     except subprocess.CalledProcessError as e:
-        print(f"[{datetime.now()}] Git hatası: {str(e)}")
+        print(f"[{datetime.now()}] Git hatası: {e}")
     except Exception as e:
-        print(f"[{datetime.now()}] Hata: {str(e)}")
+        print(f"[{datetime.now()}] Hata: {e}")
 
 
 def initialize_db(file_name):
@@ -85,8 +86,8 @@ def save_test_data(db_name, value):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    cursor.execute("INSERT INTO test_data (timestamp, value) VALUES (?, ?)", 
-                  (timestamp, value))
+    cursor.execute("INSERT INTO test_data (timestamp, value) VALUES (?, ?)",
+                   (timestamp, value))
     conn.commit()
     conn.close()
     print(f"[{datetime.now()}] Data saved to {db_path}: {value}")
@@ -100,30 +101,26 @@ def rotate_db(old_db, new_db):
             os.rename(new_db, old_db)
         print(f"[{datetime.now()}] Database rotated: {new_db} -> {old_db}")
     except Exception as e:
-        print(f"[{datetime.now()}] Database rotation error: {str(e)}")
+        print(f"[{datetime.now()}] Database rotation error: {e}")
 
 
-async def send_telegram_message(message, max_retries=3):
-    bot = Bot(token=CONFIG["BOT_TOKEN"])
-
+def send_telegram_message(message, max_retries=3):
     for chat_id in CONFIG["CHAT_IDS"]:
         retries = 0
         while retries < max_retries:
             try:
-                await bot.send_message(
-                    chat_id=chat_id,
-                    text=message,
-                    parse_mode="MarkdownV2"
-                )
+                bot.send_message(chat_id, message, parse_mode="MarkdownV2")
                 print(f"[{datetime.now()}] Message sent to {chat_id}")
                 break
             except Exception as e:
                 retries += 1
-                print(f"[{datetime.now()}] Error sending to {chat_id} (Try {retries}/{max_retries}): {str(e)}")
-                await asyncio.sleep(2)
+                print(
+                    f"[{datetime.now()}] Error sending to {chat_id} (Try {retries}/{max_retries}): {e}"
+                )
+                time.sleep(2)
 
 
-async def main():
+def main():
     print(f"[{datetime.now()}] Test script started")
 
     # Initialize test databases
@@ -154,24 +151,23 @@ async def main():
                 last_24h_rotation = current_time
 
             # Send test message
-            message = f"🔍 *Database Test*\n\n" \
-                      f"Test \\#{test_count}\n" \
-                      f"Time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}\n" \
-                      f"Value: {test_value}\n\n" \
-                      f"✅ Data saved to databases"
-
-            await send_telegram_message(message)
+            message = (f"🔍 *Database Test*\n\n"
+                       f"Test \\#{test_count}\n"
+                       f"Time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                       f"Value: {test_value}\n\n"
+                       f"✅ Data saved to databases")
+            send_telegram_message(message)
 
             # Git push işlemini çağır
             git_push()
 
             print(f"[{datetime.now()}] Test #{test_count} completed")
-            await asyncio.sleep(CONFIG["TEST_INTERVAL"])
+            time.sleep(CONFIG["TEST_INTERVAL"])
 
         except Exception as e:
-            print(f"[{datetime.now()}] Error in main loop: {str(e)}")
-            await asyncio.sleep(5)
+            print(f"[{datetime.now()}] Error in main loop: {e}")
+            time.sleep(5)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
