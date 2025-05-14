@@ -16,20 +16,31 @@ CONFIG = {
     "TEST_INTERVAL": 10  # Test every 10 seconds
 }
 
-# Senkron Telegram botu
-bot = telebot.TeleBot(CONFIG["BOT_TOKEN"])
 
-
+# MarkdownV2 için kaçış fonksiyonu
 def escape_markdown_v2(text: str) -> str:
-    """
-    Kaçması gereken MarkdownV2 karakterlerini önüne '\' ekleyerek döner.
-    """
     escape_chars = '_*[]()~`>#+-=|{}.!'
     return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
 
 
+# Senkron Telegram botu
+bot = telebot.TeleBot(CONFIG["BOT_TOKEN"])
+
+
+def remove_git_lock():
+    lock_path = os.path.join('.git', 'refs', 'remotes', 'origin', 'main.lock')
+    if os.path.exists(lock_path):
+        try:
+            os.remove(lock_path)
+            print(f"[{datetime.now()}] Removed git lock file: {lock_path}")
+        except Exception as e:
+            print(f"[{datetime.now()}] Failed to remove git lock: {e}")
+
+
 def git_push():
     try:
+        remove_git_lock()
+
         subprocess.run(
             ["git", "config", "--global", "user.name", "mustafa-senyuz"],
             check=True,
@@ -59,6 +70,7 @@ def git_push():
         if status:
             subprocess.run(["git", "commit", "-m", "Auto update from script"],
                            check=True)
+            remove_git_lock()
             subprocess.run(["git", "push", "origin", "main"], check=True)
             print(f"[{datetime.now()}] Değişiklikler başarıyla push edildi")
         else:
@@ -113,7 +125,6 @@ def rotate_db(old_db, new_db):
 
 
 def send_telegram_message(message: str, max_retries=3):
-    # message zaten kaçışlı geliyor
     for chat_id in CONFIG["CHAT_IDS"]:
         retries = 0
         while retries < max_retries:
@@ -132,7 +143,6 @@ def send_telegram_message(message: str, max_retries=3):
 def main():
     print(f"[{datetime.now()}] Test script started")
 
-    # Initialize test databases
     initialize_db('test_1h.db')
     initialize_db('test_24h.db')
 
@@ -145,12 +155,10 @@ def main():
             test_count += 1
             current_time = datetime.now()
 
-            # Save test data
             test_value = f"Test value #{test_count}"
             save_test_data('test_1h.db', test_value)
             save_test_data('test_24h.db', test_value)
 
-            # Database rotation checks
             if (current_time - last_1h_rotation).total_seconds() >= 3600:
                 rotate_db('db/test_1h_old.db', 'db/test_1h.db')
                 last_1h_rotation = current_time
@@ -159,19 +167,15 @@ def main():
                 rotate_db('db/test_24h_old.db', 'db/test_24h.db')
                 last_24h_rotation = current_time
 
-            # Build escaped message
-            timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            escaped_ts = escape_markdown_v2(timestamp)
-            escaped_value = escape_markdown_v2(test_value)
+            # Mesajı oluştur ve kaçış uygula
+            ts = current_time.strftime("%Y-%m-%d %H:%M:%S")
             message = (f"🔍 *Database Test*\n\n"
                        f"Test \\#{test_count}\n"
-                       f"Time: `{escaped_ts}`\n"
-                       f"Value: `{escaped_value}`\n\n"
+                       f"Time: `{escape_markdown_v2(ts)}`\n"
+                       f"Value: `{escape_markdown_v2(test_value)}`\n\n"
                        f"✅ Data saved to databases")
-
             send_telegram_message(message)
 
-            # Git push işlemini çağır
             git_push()
 
             print(f"[{datetime.now()}] Test #{test_count} completed")
