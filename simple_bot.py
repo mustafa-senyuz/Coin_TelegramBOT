@@ -1,10 +1,10 @@
 import os
-from telegram import Bot
-import asyncio
+import time
 from datetime import datetime
+import telebot
 from dotenv import load_dotenv
 
-# Load environment variables
+# .env dosyasını yükle
 load_dotenv()
 
 CONFIG = {
@@ -14,74 +14,74 @@ CONFIG = {
 }
 
 
-def escape_markdown_v2(text):
-    # Characters that need to be escaped in MarkdownV2
-    escape_chars = '_*[]()~`>#+-=|{}.!'
-    return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
+class TelegramBot:
 
+    def __init__(self, token, chat_ids, interval):
+        self.bot = telebot.TeleBot(token)
+        self.chat_ids = chat_ids
+        self.interval = interval
 
-def create_test_message():
-    coins = [{
-        "symbol": "BTC",
-        "price": "40000",
-        "change": "+5.2"
-    }, {
-        "symbol": "ETH",
-        "price": "2000",
-        "change": "+3.1"
-    }, {
-        "symbol": "BNB",
-        "price": "300",
-        "change": "-1.5"
-    }]
+    def escape_markdown_v2(self, text: str) -> str:
+        escape_chars = '_*[]()~`>#+-=|{}.!'
+        return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
 
-    # Create header
-    message = ["🚨 *Crypto Alert* 🚨\n"]
+    def create_test_message(self) -> str:
+        coins = [
+            {
+                "symbol": "BTC",
+                "price": "40000",
+                "change": "+5.2"
+            },
+            {
+                "symbol": "ETH",
+                "price": "2000",
+                "change": "+3.1"
+            },
+            {
+                "symbol": "BNB",
+                "price": "300",
+                "change": "-1.5"
+            },
+        ]
 
-    # Create table in code block (no need to escape inside code blocks)
-    table = ["```", "Symbol | Price | Change", "-------|--------|--------"]
+        # Başlık
+        message = ["🚨 *Crypto Alert* 🚨\n"]
 
-    # Add rows
-    for coin in coins:
-        row = f"{coin['symbol']} | ${coin['price']} | {coin['change']}%"
-        table.append(row)
+        # Kod bloğu içinde tablo (kaçış gerekmiyor)
+        table = ["```", "Symbol | Price | Change", "-------|--------|--------"]
+        for coin in coins:
+            row = f"{coin['symbol']} | ${coin['price']} | {coin['change']}%"
+            table.append(row)
+        table.append("```")
+        message.extend(table)
 
-    table.append("```")
-    message.extend(table)
+        # Zaman damgası ve kaçış
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ts_escaped = self.escape_markdown_v2(ts)
+        message.append(f"\n⏱ Last Update: `{ts_escaped}`")
 
-    # Add timestamp (need to escape special characters)
-    timestamp = datetime.now().strftime("%Y\\-%m\\-%d %H:%M:%S")
-    message.append(f"\n⏱ Last Update: `{timestamp}`")
+        return "\n".join(message)
 
-    return "\n".join(message)
+    def send_messages(self, message: str):
+        for chat_id in self.chat_ids:
+            try:
+                self.bot.send_message(chat_id,
+                                      message,
+                                      parse_mode="MarkdownV2")
+                print(f"✅ Message sent to {chat_id}")
+            except Exception as e:
+                print(f"❌ Error sending to {chat_id}: {e}")
 
-
-async def send_message(message):
-    bot = Bot(token=CONFIG["BOT_TOKEN"])
-
-    for chat_id in CONFIG["CHAT_IDS"]:
-        try:
-            await bot.send_message(chat_id=chat_id,
-                                   text=message,
-                                   parse_mode="MarkdownV2")
-            print(f"Message sent to {chat_id}")
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"Error sending to {chat_id}: {str(e)}")
-
-
-async def main():
-    print("Bot started. Press Ctrl+C to stop.")
-    while True:
-        try:
-            message = create_test_message()
-            await send_message(message)
-            print(f"Waiting {CONFIG['INTERVAL']} seconds...")
-            await asyncio.sleep(CONFIG["INTERVAL"])
-        except Exception as e:
-            print(f"Error in main loop: {str(e)}")
-            await asyncio.sleep(5)
+    def start(self):
+        print("Bot (sync) starting... Press Ctrl+C to stop.")
+        while True:
+            msg = self.create_test_message()
+            self.send_messages(msg)
+            print(f"⏳ Waiting {self.interval} seconds...\n")
+            time.sleep(self.interval)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    bot = TelegramBot(CONFIG["BOT_TOKEN"], CONFIG["CHAT_IDS"],
+                      CONFIG["INTERVAL"])
+    bot.start()
