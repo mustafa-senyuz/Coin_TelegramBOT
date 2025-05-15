@@ -17,6 +17,10 @@ run = ["python", "0.py"]
 [[ports]]
 localPort = 3000
 
+[[ports]]
+localPort = 4444
+externalPort = 3003
+
 [workflows]
 runButton = "Run"
 
