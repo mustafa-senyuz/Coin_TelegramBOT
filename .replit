@@ -16,7 +16,6 @@ run = ["python", "0.py"]
 
 [[ports]]
 localPort = 3000
-externalPort = 3000
 
 [[ports]]
 localPort = 4444
