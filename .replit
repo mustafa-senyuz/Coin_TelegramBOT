@@ -34,13 +34,8 @@ author = 42014373
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
-task = "packager.installForLanguage"
-args = "python3"
+task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Run"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python db_test.py"
