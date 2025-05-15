@@ -16,3 +16,6 @@ flask
 
 #httpcore[asyncio]==1.0.2
 httpcore[asyncio]
+pyTelegramBotAPI
+aiogram
+aiosqlite

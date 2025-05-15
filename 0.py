@@ -6,8 +6,9 @@ from concurrent.futures import ThreadPoolExecutor
 from telegram import Bot
 from datetime import datetime
 
-import json
 import subprocess
+
+import json
 
 from dotenv import load_dotenv
 
@@ -37,11 +38,6 @@ def save_alert_to_json(symbol):
         print(
             f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} zaten alerts.json içinde var."
         )
-
-
-from datetime import datetime
-import subprocess
-import os
 
 
 def git_push():
